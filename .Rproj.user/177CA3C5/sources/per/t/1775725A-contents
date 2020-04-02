@@ -1,0 +1,27 @@
+remove(partType)
+remove(parTpe)
+remove(sustype2)
+
+#suspType will be used to identify suspectsinsta
+susType <- gunsfile[c(1,26)]
+#susType2<- data.frame(do.call("rbind",strsplit(as.character(susType$participant_type), "||",fixed = TRUE)))
+susType2<-colsplit(susType$participant_type, pattern  = "\\|\\|", names= c(1:26))
+
+#for prac
+gunPrac <- gunsfile
+wKill<-aggregate(gunPrac$n_killed, by =list(gunPrac$state), FUN = sum)
+winjured<-aggregate(gunPrac$n_injured, by = list(gunPrac$state),FUN = sum)
+stateKillInj<- merge(wKill,winjured, by.x = "Group.1", by.y = "Group.1")
+
+gunPrac<- gunPrac[gunPrac$state != "Alaska",]
+gunPrac<- gunPrac[gunPrac$state != "Hawaii",]
+
+USAMap <- ggmap(get_googlemap(center = 
+        as.numeric(geocode("United States")),scale=2,zoom=4, extent= "device"))
+deathLoc<- data.frame(gunPrac$n_killed,gunPrac$longitude,gunPrac$latitude)
+colnames(deathLoc)<- c("Killed","lon","lat")
+
+USAMap + geom_density2d(data = deathLoc, aes(x=lon, y=lat),size = 1) +
+  stat_density2d(data = deathLoc, aes(x= lon, y= lat, fill= ..level..,alpha = ..level..), size = .1,
+                bins = 50, geom = "polygon") + scale_fill_gradient(low= "yellow", high = "red")+
+          scale_alpha(range = c(.1,1), guide = FALSE)

@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1565795477116.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2231681593",
+    "id" : "1E55AEFE",
+    "lastKnownWriteTime" : 1540834843,
+    "last_content_update" : 1540834843,
+    "path" : "C:/Users/nicholas.uhorchak/Desktop/Uhorchak_July/R/JulyApp/app.R",
+    "project_path" : "R/JulyApp/app.R",
+    "properties" : {
+        "cursorPosition" : "204,29",
+        "scrollLine" : "184"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

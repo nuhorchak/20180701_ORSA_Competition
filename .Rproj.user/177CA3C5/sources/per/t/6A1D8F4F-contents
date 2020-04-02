@@ -1,0 +1,215 @@
+# Uhorchak July ORSA Competition Shiny App.
+# NOTE: data is pulled from .rda files, not the original data.  Data was cleaned prior to this, so it not shown here.
+# if you want to see that code, ask.
+
+ipak <- function(pkg){
+  new.pkg <- pkg[!(pkg %in% installed.packages()[, "Package"])]
+  if (length(new.pkg))
+    install.packages(new.pkg, dependencies = TRUE)
+  sapply(pkg, require, character.only = TRUE)
+}
+
+# usage
+packages <- c("ggplot2", "shiny", "ggmap", "shinydashboard", "DT", "shinycssloaders", "tidyverse")
+ipak(packages)
+
+library(shiny)
+library(tidyverse)
+library(ggplot2)
+library(ggmap)
+library(shinydashboard)
+library(DT)
+library(shinycssloaders)
+
+#load data
+load("../../data/my_data.rda")
+load("../../data/pakistan_google_map.rda")
+load("../../data/pakistan_map.rda")
+load("../../data/fatality_by_day_DF.rda")
+load("../../data/injured_by_day_DF.rda")
+
+# Define UI for application that draws a histogram
+ui <- dashboardPage(skin = "green",
+
+                    dashboardHeader(title = "(Unclassified) WOPR Jr",  titleWidth = 250),
+
+
+
+                    dashboardSidebar(width = 250,
+                                     sidebarMenu(
+                                       menuItem("Data Table", tabName = "main_table", icon = icon("th")),
+                                       menuItem("Killed Statistics", tabName = "killed_stats", icon = icon("signal")),
+                                       menuItem("Injured Statistics", tabName = "injured_stats", icon = icon("signal")),
+                                       menuItem("Interactive Map", tabName = "interactive_map", icon = icon("globe")),
+                                       menuItem("Map Controls - Sliders", tabName = "map_controls1", icon = icon("globe"),
+                                                menuItem(sliderInput(inputId = "year", label = "Year",
+                                                                     min = 1995, max = 2017, value = c(1995,2017), step = 1,
+                                                                     sep = "", dragRange = TRUE)),
+                                                menuItem(sliderInput(inputId = "month", label = "Month",
+                                                                     min = 01, max = 12, value = c(01,12), step = 1,
+                                                                     sep = "", dragRange = TRUE)),
+                                                menuItem(sliderInput(inputId = "day", label = "Day",
+                                                                     min = 01, max = 31, value = c(01,31), step = 1,
+                                                                     sep = "", dragRange = TRUE))
+                                       ),
+                                       menuItem("Map Controls - Check Boxes", tabName = "map_controls2", icon = icon("globe"),
+                                                menuItem(checkboxGroupInput(inputId = "weekday", label = "Weekday",
+                                                                            choices = c(unique(my_data$weekday)),
+                                                                            selected = c(unique(my_data$weekday)),
+                                                                            inline = TRUE)),
+                                                menuItem(checkboxGroupInput(inputId = "province", label = "Province",
+                                                                            choices = c(unique(my_data$Province)),
+                                                                            selected = c(unique(my_data$Province)),
+                                                                            inline = TRUE)),
+                                                menuItem(checkboxGroupInput(inputId = "holiday", label = "Day Type",
+                                                                            choices = c(unique(my_data$`Blast Day Type`)),
+                                                                            selected = c(unique(my_data$`Blast Day Type`)),
+                                                                            inline = TRUE)),
+                                                menuItem(checkboxGroupInput(inputId = "sensitivity", label = "Location Sensitivity",
+                                                                            choices = c(unique(my_data$`Location Sensitivity`)),
+                                                                            selected = c(unique(my_data$`Location Sensitivity`)),
+                                                                            inline = TRUE)),
+                                                menuItem(checkboxGroupInput(inputId = "tgt", label = "Target Type",
+                                                                            choices = c(unique(my_data$`Target Type`)),
+                                                                            selected = c(unique(my_data$`Target Type`)),
+                                                                            inline = TRUE))
+                                       ),
+                                       menuItem("Map Controls - Point Density", tabName = "map_controls3", icon = icon("globe"),
+                                                menuItem(selectInput(inputId = "filter", label = "Point Density",
+                                                                     choices = c("NONE","Casualties_Min", "Casualties_Max",
+                                                                                 "Temperature_C", "Temperature_F"),
+                                                                     selectize = TRUE))
+                                       )
+                                     )
+                    ),
+                    dashboardBody(
+
+                      tabItems(
+                        # datatable tab content
+                        tabItem(tabName = "main_table",
+                                fluidRow(
+                                  box(
+                                    DT::dataTableOutput(outputId = "main_table"), width = "100%"
+                                  )
+                                )
+                        ),
+                        # killed tab content
+                        tabItem(tabName = "killed_stats",
+                                fluidRow(
+                                  box(
+                                    DT::dataTableOutput(outputId = "killed_table"), width = "100%"
+                                  ),
+                                  box(
+                                    plotOutput(outputId = "killed_CI")
+                                  )
+                                )
+                        ),
+                        # injured tab content
+                        tabItem(tabName = "injured_stats",
+                                fluidRow(
+                                  box(
+                                    DT::dataTableOutput(outputId = "injured_table"), width = "20%"
+                                  ),
+                                  box(
+                                    plotOutput(outputId = "injured_CI")
+                                  )
+                                )
+                        ),
+
+                        # map tab content
+                        tabItem(tabName = "interactive_map",
+                                withSpinner(plotOutput(outputId = "pak_map", height = 500), type = 4)
+                        ),
+
+                        # bradshaw tab content
+                        tabItem(tabName = "bigData",
+                                box(title = "The solution to all our data needs!",
+                                    tags$img(src = 'winner.jpg', width = "100%")
+                                )),
+                        # zais tab content
+                        tabItem(tabName = "smallData",
+                                box(title = "CPT Uhorchak is my data science hero!",
+                                    tags$img(src = 'loser.jpg', width = "100%")
+                                ))
+                      )
+                    )
+)
+
+
+# Define server logic required to draw a histogram
+server <- function(input, output) {
+  #instructions
+  output$Overview  <- renderUI({
+
+  })
+  #data table output
+  output$main_table <- DT::renderDataTable(my_data[1:28],
+                                           extensions=c("Buttons",'Scroller'),
+                                           options = list(dom = 'rtip',
+                                                          scrollY = 400,
+                                                          scroller = TRUE,
+                                                          scrollX= TRUE
+                                           ))
+
+  #output for killed stats
+  output$killed_table <- DT::renderDataTable(fatality_by_day_DF,
+                                             extensions=c("Buttons",'Scroller'),
+                                             options = list(dom = 'rtip',
+                                                            scrollY = 300,
+                                                            scroller = TRUE,
+                                                            scrollX= TRUE
+                                             ))
+  output$killed_CI <- renderPlot(ggplot(fatality_by_day_DF) + geom_point(aes(x=`Day`, y = `AVG Min killed`, colour = "AVG Min Killed")) +
+                                   geom_errorbar(aes(x = `Day`, ymax = `Upper 95% AVG Min Killed`,ymin = `Lower 95% AVG Min Killed`)) +
+                                   geom_point(aes(x=`Day`, y = `AVG Max killed`, colour = "AVG Max Killed")) +
+                                   geom_errorbar(aes(x = `Day`, ymax = `Upper 95% AVG Max Killed`,ymin = `Lower 95% AVG Max Killed`)) +
+                                   ggtitle("AVG Min/Max Killed by day") +
+                                   xlab("Reporting Day")+
+                                   ylab("AVG Killed") +
+                                   scale_color_discrete(name="Average\nKilled"))
+
+  #output for Injured stats
+  #output for Injured stats
+  output$injured_table <- DT::renderDataTable(Injured_by_day_DF,
+                                              extensions=c("Buttons",'Scroller'),
+                                              options = list(dom = 'rtip',
+                                                             scrollY = 300,
+                                                             scroller = TRUE,
+                                                             scrollX= TRUE
+                                              ))
+  output$injured_CI <- renderPlot(ggplot(Injured_by_day_DF) + geom_point(aes(x=`Day`, y = `AVG Min Injured`, colour = "AVG Min Injured")) +
+                                    geom_errorbar(aes(x = `Day`, ymax = `Upper 95% AVG Min Injured`,ymin = `Lower 95% AVG Min Injured`)) +
+                                    geom_point(aes(x=`Day`, y = `AVG Max Injured`, colour = "AVG Max Injured")) +
+                                    geom_errorbar(aes(x = `Day`, ymax = `Upper 95% AVG Max Injured`,ymin = `Lower 95% AVG Max Injured`)) +
+                                    ggtitle("AVG Min/Max Injured by day") +
+                                    xlab("Reporting Day")+
+                                    ylab("AVG Injured") +
+                                    scale_color_discrete(name="Average\nInjured"))
+
+  #output for pakistan interactive map
+
+  output$pak_map <- renderPlot({
+
+    ggmap(pakistan_google_map) +
+      geom_path(data = pakistan_map, aes(x=long,y=lat,group=group), size = 1) +
+      geom_point(data = filter(my_data, (Year <= max(input$year) & Year >= min(input$year)) &
+                                 (Month >= min(input$month) & Month <= max(input$month)) &
+                                 (Day >= (min(input$day)) & Day <= max(input$day)) &
+                                 (weekday %in% input$weekday) &
+                                 (Province %in% input$province) &
+                                 (`Blast Day Type` %in% input$holiday) &
+                                 (`Location Sensitivity` %in% input$sensitivity) &
+                                 (`Target Type` %in% input$tgt)
+      ),
+      aes_string(x= "Longitude", y = "Latitude", size = input$filter), color = "red", shape = 18) +
+      scale_x_continuous(limits = c(60.5, 78.5), expand = c(0,0))+
+      scale_y_continuous(limits = c(23.5, 37.1), expand = c(0,0)) +
+      ggtitle("Pakistan Suicide Attacks")
+
+  })
+}
+
+
+# Run the application
+shinyApp(ui = ui, server = server)
+
